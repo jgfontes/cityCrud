@@ -34,9 +34,6 @@ public class CityController {
             validation
                 .getFieldErrors()
                 .forEach(fieldError -> {
-//                    System.out.println(String.format("Error Field: %s // Error Default Message: %s",
-//                            fieldError.getField(),
-//                            fieldError.getDefaultMessage()));
                     memory.addAttribute(
                             fieldError.getField(),
                             fieldError.getDefaultMessage()
@@ -94,10 +91,27 @@ public class CityController {
             BindingResult validation,
             Model memory
     ) {
-        cities.removeIf(actualCity -> {
-            return (actualCity.getName().equals(actualName) && actualCity.getState().equals(actualName));
-        });
-        create(city, validation, memory);
-        return "redirect:/";
+        if(validation.hasErrors()) {
+            validation
+                    .getFieldErrors()
+                    .forEach(fieldError -> {
+                        memory.addAttribute(
+                                fieldError.getField(),
+                                fieldError.getDefaultMessage()
+                        );
+                    });
+            memory.addAttribute("nameSent", city.getName());
+            memory.addAttribute("stateSent", city.getState());
+            memory.addAttribute("cities", cities);
+
+            return("/crud");
+        } else {
+            cities.removeIf(actualCity -> {
+                return (actualCity.getName().equals(actualName) && actualCity.getState().equals(actualState));
+            });
+
+            create(city, validation, memory);
+            return "redirect:/";
+        }
     }
 }
