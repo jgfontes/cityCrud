@@ -12,20 +12,26 @@
     </div>
 
     <#if actualCity??>
-        <form action="/update" method="POST">
+        <form action="/update" method="POST" class="needs-validation" novalidate>
         <input type="hidden" name="actualName" value="${(actualCity.name)!}">
         <input type="hidden" name="actualState" value="${(actualCity.state)!}">
     <#else>
-        <form action="/create" method="POST">
+        <form action="/create" method="POST" class="needs-validation" novalidate>
     </#if>
 
         <div class="form-group">
             <label for="name">City:</label>
-            <input value="${(actualCity.name)!}" name="name" type="text" class="form-control" placeholder="Enter the city name" id="name">
+            <input value="${(actualCity.name)!}${nameSent!}" name="name" type="text" class="form-control ${(name??)?then('is-invalid', '')}" placeholder="Enter the city name" id="name">
+            <div class="invalid-feedback">
+                ${name!}
+            </div>
         </div>
         <div>
             <label for="state">State:</label>
-            <input value="${(actualCity.state)!}" name="state" type="text" class="form-control" placeholder="Enter the state name" id="state">
+            <input value="${(actualCity.state)!}${stateSent!}" name="state" type="text" class="form-control ${(state??)?then('is-invalid', '')}" placeholder="Enter the state name" id="state">
+            <div class="invalid-feedback">
+                ${state!}
+            </div>
         </div>
 
         <#if actualCity??>

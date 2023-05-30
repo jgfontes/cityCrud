@@ -1,8 +1,10 @@
 package com.jgfontes.CityCrud.Controller;
 
 import com.jgfontes.CityCrud.Entity.City;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,8 +29,28 @@ public class CityController {
     }
 
     @PostMapping("/create")
-    public String create(City city) {
-        cities.add(city);
+    public String create(@Valid City city, BindingResult validation, Model memory) {
+        if(validation.hasErrors()) {
+            validation
+                .getFieldErrors()
+                .forEach(fieldError -> {
+//                    System.out.println(String.format("Error Field: %s // Error Default Message: %s",
+//                            fieldError.getField(),
+//                            fieldError.getDefaultMessage()));
+                    memory.addAttribute(
+                            fieldError.getField(),
+                            fieldError.getDefaultMessage()
+                    );
+                });
+                memory.addAttribute("nameSent", city.getName());
+                memory.addAttribute("stateSent", city.getState());
+                memory.addAttribute("cities", cities);
+
+                return("/crud");
+        } else {
+            cities.add(city);
+        }
+
         return "redirect:/";
     }
 
@@ -68,12 +90,14 @@ public class CityController {
     public String alterar(
             @RequestParam String actualName,
             @RequestParam String actualState,
-            City city
+            City city,
+            BindingResult validation,
+            Model memory
     ) {
         cities.removeIf(actualCity -> {
             return (actualCity.getName().equals(actualName) && actualCity.getState().equals(actualName));
         });
-        create(city);
+        create(city, validation, memory);
         return "redirect:/";
     }
 }
