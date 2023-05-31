@@ -1,30 +1,40 @@
 package com.jgfontes.CityCrud.Controller;
 
 import com.jgfontes.CityCrud.Entity.City;
+import com.jgfontes.CityCrud.Entity.CityEntity;
+import com.jgfontes.CityCrud.Repository.CityRepository;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 public class CityController {
 
-    private Set<City> cities;
+    @Autowired
+    private final CityRepository cityRepository;
 
-    public CityController() {
-        cities = new HashSet<>();
+    public CityController(CityRepository cityRepository) {
+        this.cityRepository = cityRepository;
     }
 
     @GetMapping("/")
     public String list(Model memory) {
-        memory.addAttribute("cities", cities);
+        memory.addAttribute("cities",
+            cityRepository
+                .findAll()
+                .stream()
+                .map(cityMapped -> new City(cityMapped.getName(), cityMapped.getState()))
+                .collect(Collectors.toList()));
         return "/crud";
     }
 
@@ -41,14 +51,22 @@ public class CityController {
                 });
                 memory.addAttribute("nameSent", city.getName());
                 memory.addAttribute("stateSent", city.getState());
-                memory.addAttribute("cities", cities);
+                memory.addAttribute("cities",
+                    cityRepository
+                            .findAll()
+                            .stream()
+                            .map(cityMapped -> new City(cityMapped.getName(), cityMapped.getState()))
+                            .collect(Collectors.toList()));
 
                 return("/crud");
         } else {
-            cities.add(city);
-        }
+            CityEntity cityEntity = new CityEntity();
+            cityEntity.setName(city.getName());
+            cityEntity.setState(city.getState());
 
-        return "redirect:/";
+            cityRepository.save(cityEntity);
+            return "redirect:/";
+        }
     }
 
     @GetMapping("/delete")
@@ -56,11 +74,8 @@ public class CityController {
             @RequestParam String name,
             @RequestParam String state
     ) {
-        System.out.println("City name and state" + name + state);
-        cities.removeIf(city -> {
-            return (city.getName().equals(name) && city.getState().equals(state));
-        });
-
+        Optional<CityEntity> cityEntity = cityRepository.findByNameAndState(name, state);
+        cityEntity.ifPresent(cityRepository::delete);
         return "redirect:/";
     }
 
@@ -70,48 +85,52 @@ public class CityController {
             @RequestParam String state,
             Model memory
     ) {
-        var actualCity = cities
-                                        .stream()
-                                        .filter(city ->
-                                                city.getName().equals(name) &&
-                                                city.getState().equals(state)
-                                        ).findAny();
+        Optional<CityEntity> actualCity = cityRepository.findByNameAndState(name, state);
+
         if(actualCity.isPresent()){
             memory.addAttribute("actualCity", actualCity.get());
-            memory.addAttribute("cities", cities);
+            memory.addAttribute("cities",
+                    cityRepository
+                            .findAll()
+                            .stream()
+                            .map(city -> new City(city.getName(), city.getState()))
+                            .collect(Collectors.toList()));
         }
         return "/crud";
     }
 
     @PostMapping("/update")
-    public String alterar(
+    public String update(
             @RequestParam String actualName,
             @RequestParam String actualState,
-            City city,
-            BindingResult validation,
-            Model memory
+            City city
     ) {
-        if(validation.hasErrors()) {
-            validation
-                    .getFieldErrors()
-                    .forEach(fieldError -> {
-                        memory.addAttribute(
-                                fieldError.getField(),
-                                fieldError.getDefaultMessage()
-                        );
-                    });
-            memory.addAttribute("nameSent", city.getName());
-            memory.addAttribute("stateSent", city.getState());
-            memory.addAttribute("cities", cities);
+//        if(validation.hasErrors()) {
+//            validation
+//                    .getFieldErrors()
+//                    .forEach(fieldError -> {
+//                        memory.addAttribute(
+//                                fieldError.getField(),
+//                                fieldError.getDefaultMessage()
+//                        );
+//                    });
+//            memory.addAttribute("nameSent", city.getName());
+//            memory.addAttribute("stateSent", city.getState());
+//            memory.addAttribute("cities", cities);
+//
+//            return("/crud");
+//        } else {
+            System.out.println("ACTUAL NAME AND STATE: " + actualName + actualState);
+            var actualCity = cityRepository.findByNameAndState(actualName, actualState);
+            if(actualCity.isPresent()) {
+                System.out.println("ENTERING IF LOOP");
+                var foundCity = actualCity.get();
+                foundCity.setName(city.getName());
+                foundCity.setState(city.getState());
 
-            return("/crud");
-        } else {
-            cities.removeIf(actualCity -> {
-                return (actualCity.getName().equals(actualName) && actualCity.getState().equals(actualState));
-            });
-
-            create(city, validation, memory);
-            return "redirect:/";
+                cityRepository.saveAndFlush(foundCity);
+            }
+//            return ("redirect:/");
         }
     }
 }
